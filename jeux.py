@@ -6,7 +6,8 @@ class KalahGame:
         self.board = [0] + [3] * 6 + [0] + [3] * 6
         self.level = None
         #0 sud 1 nord
-        self.side = None
+        self.player_side = None
+        self.computer_side = None
         self.player_khala = None
         self.computer_khala = None
        
@@ -14,84 +15,111 @@ class KalahGame:
         #clear the user terminal 
         os.system('cls')
         # Display the board
-        print("  ", "  ".join(map(str, self.board[0:6])))
+        print("  ", "  ".join(map(str, self.board[1:7])))
         print(self.board[0], " " * 17, self.board[7])
-        print("  ", "  ".join(map(str, self.board[7:13][::-1])))
+        print("  ", "  ".join(map(str, self.board[8:14])))
 
     def end_game(self):
         # End the game and collect remaining seeds
-        self.board[12] += sum(self.board[:6])
-        self.board[13] += sum(self.board[6:12])
-        for i in range(12):
-            self.board[i] = 0
+        self.board[0] += sum(self.board[1:7])
+        self.board[7] += sum(self.board[8:14])
+        for i in range(1,14):
+            if (i != 7):
+                self.board[i] = 0
 
     def is_game_over(self):
         # The game is over when one side of the board is empty
-        return sum(self.board[:6]) == 0 or sum(self.board[6:12]) == 0
+        return sum(self.board[1:7]) == 0 or sum(self.board[8:14]) == 0
 
     def get_winner(self):
         # Determine the winner based on the number of seeds in Kalahs
-        if self.board[12] == self.board[13]:
+        if self.player_khala == self.computer_khala:
             return "Egalité !"
-        if self.board[12] > self.board[13] and self.side == 0:
+        if self.player_khala > self.computer_khala:
             return "Vous avez gagné !"
         else:
             return "L'ordinateur a gagné !"
         
     def selectHole(self):
         while True:
-            min_hole = 1 if self.side == 0 else 8
-            max_hole = 6 if self.side == 0 else 13
+            min_hole = 1 if self.player_side == 0 else 8
+            max_hole = 6 if self.player_side == 0 else 13
             caseNumber = int(input(f"choisisser une case en saisisant un nombre compris entre {min_hole} et {max_hole} (de gauche a droite)"))
             if not(min_hole <= caseNumber <= max_hole):
                 print("case invalide")
             else: 
-                #on ajoute 6 pour tenir compte du side
-                return caseNumber + 6 if self.side == 1 else caseNumber
+                return caseNumber
             
-    def player_move(self):
-        selected_hole = self.selectHole()
+    def move(self, kalah, enemy_kalah, selected_hole):
         marbles = self.board[selected_hole]
         self.board[selected_hole] = 0
-        for i in range(marbles):
+        #on ajoute 1 pour que i commence à 1
+        deplacement = selected_hole
+        while marbles > 0:
             #determine la case dans lequel semé une graine
-            deplacement = selected_hole - i if 0 <= selected_hole < 7 else 7 + abs(selected_hole - i) if selected_hole - i < 0 else 7 - (selected_hole + i) -13  if selected_hole + i > 13  else selected_hole + i 
+            if deplacement == 0:
+                deplacement = 8
+            elif deplacement == 13:
+                deplacement = 7
+            else : 
+                if 0 < deplacement < 8:
+                    deplacement -=1
+                else : 
+                    deplacement +=1
+
+            #si la case est le kalah de l'adversaire ou la case initalement choisi on passe
+            if(deplacement == enemy_kalah or deplacement == selected_hole):
+                continue
             self.board[(deplacement)] += 1
+            marbles -= 1
             #si dernier tours
-            if(i == marbles):
-                #si la dernière billes et placé dans sont kalah le joueur rejoue
-                if((deplacement == 0 and self.side == 0) or (deplacement == 7 and self.side == 1)):
-                    self.player_move()
+            if(marbles == 0):
+                #si la dernière bille est placée dans son kalah le joueur rejoue
+                if(deplacement == kalah):
+                    self.display_board()
+                    print("Vous rejouez")
+                    self.move(kalah, enemy_kalah, self.selectHole())
                 #si la case avait une ou deux billes le joueur prend les billes dans sont kalah
                 elif(1 < self.board[deplacement] < 4):
-                    self.board[self.player_khala] += self.board[deplacement]
+                    self.board[kalah] += self.board[deplacement]
                     self.board[deplacement] = 0
                     j = 1
                     while True:
                         #recule d'une case à chaque fois que la case contient 1 ou 2 billes et les ajoute au kalah du joueur
-                        deplacementJ = deplacement + j if 0 <= deplacement + j < 7 else deplacement - j if deplacement - j > 7 else 13 if deplacement + j == 7 else 0 if deplacement - j == 7 else None
-                        if (0 < self.board[deplacementJ] < 3): 
-                            self.board[self.player_khala] += self.board[deplacementJ]
+                        if(deplacement - j == 7):
+                            deplacement = 0
+                            j = 0
+                        elif(deplacement + j == 7):
+                            deplacement = 13
+                            j = 0
+                        deplacementJ = deplacement + j if 0 <= deplacement + j < 7 else deplacement - j 
+                        if(deplacementJ == kalah or deplacementJ == enemy_kalah):
+                            j += 1
+                            continue
+                        if (1 < self.board[deplacementJ] < 4): 
+                            self.board[kalah] += self.board[deplacementJ]
                             self.board[deplacementJ] = 0
                             j += 1
                         else : 
                             break
     
     def computer_move(self):
-        return
+        return 1 if self.computer_side == 0 else 8
 
     def start(self):
+        self.display_board()
         while True:
-            self.display_board()
-
-            self.player_move()
+            
+            self.move(self.player_khala, self.computer_khala, self.selectHole())
             if self.is_game_over():
                 break  
 
-            self.computer_move()
+            self.move(self.computer_khala, self.player_khala, self.computer_move())
             if self.is_game_over():
                 break
-            
+
+            self.display_board()
+
             if(input("souhaiter vous sauvegarder la partie ? (O/N)") == "O"):
                 self.save_game()
                 return
@@ -105,7 +133,8 @@ class KalahGame:
         game_state = {
             "board": self.board,
             "level": self.level,
-            "side": self.side,
+            "player_side": self.player_side,
+            "computer_side": self.computer_side,
             "player_khala": self.player_khala,
             "computer_khala": self.computer_khala
         }
@@ -114,27 +143,29 @@ class KalahGame:
             json.dump(game_state, file)
         print("Jeu sauvegardé !")
 
-    def load_game(self, board, level, side, player_khala, computer_khala):
+    def load_game(self, board, level, player_side, computer_side, player_khala, computer_khala):
         self.board = board
         self.level = level
-        self.side = side
+        self.player_side = player_side
+        self.computer_side = computer_side
         self.player_khala = player_khala
         self.computer_khala = computer_khala
     
-    def set_game(self, level, side):
+    def set_game(self, level, player_side):
         self.level = level
         #0 sud 1 nord
-        self.side = side
-        self.player_khala = 0 if side == 0 else 7
-        self.computer_khala = 7 if side == 0 else 0
+        self.player_side = player_side
+        self.computer_side = 0 if player_side == 1 else 1
+        self.player_khala = 0 if player_side == 0 else 7
+        self.computer_khala = 7 if player_side == 0 else 0
 
 def initalize_game(): 
     while True:
         game = KalahGame()
         #pour reprendre une partie sauvegarder
         if (input("souhaiter vous reprendre la dernière partie") == "O"):
-            board, level, side, player_khala, computer_khala = load_game()
-            game = game.load_game(board, level, side, player_khala, computer_khala)
+            board, level, player_side, computer_side, player_khala, computer_khala = load_JSON()
+            game.load_game(board, level, player_side, computer_side, player_khala, computer_khala)
         else :
             #choisir le side
             side = int(input("choisisser votre side (0 nord ou 1 sud)"))
@@ -145,7 +176,7 @@ def initalize_game():
         if input("Voulez vous rejouer ? (O/N)") == "N":
             break
 
-def load_game(filename="kalah_save.json"):
+def load_JSON(filename="kalah_save.json"):
     # Charger le jeu depuis un fichier
     with open(filename, 'r') as file:
         game_state = json.load(file)
