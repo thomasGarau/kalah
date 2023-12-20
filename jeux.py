@@ -86,7 +86,6 @@ class KalahGame:
                             print("Vous rejouez")
                             self.move(kalah, enemy_kalah, self.selectHole(), board, False, depth -1)
                         else: 
-                            print("computer simule un rejouer")
                             self.move(kalah, enemy_kalah, self.computer_move(board, depth), board, True, depth -1)
                 #si la case avait une ou deux billes le joueur prend les billes dans sont kalah
                 elif(1 < board[deplacement] < 4):
@@ -115,11 +114,9 @@ class KalahGame:
     def computer_move(self, computer_board, max_depth):
         bestMove = None
         bestValue = -float('inf')
-        print(max_depth)
         if (max_depth <= 0):
             return None
         for hole in range(self.computer_khala +1, self.computer_khala + 7):
-            print("branche", hole)
             #coupe la branche si la case est vide
             if(computer_board[hole] == 0):
                 continue
